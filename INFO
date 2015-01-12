@@ -1,0 +1,10 @@
+{
+    "name": "brmediathek",
+    "hostprefix": "br.de",
+    "displayname": "BR Mediathek",
+    "version": "0.1",
+    "authentication": "no",
+    "module": "brmediathek.php",
+    "class": "SynoFileHostingBRMediathek",
+    "description": "Download Videos from BR Mediathek"
+}
