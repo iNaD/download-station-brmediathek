@@ -17,41 +17,21 @@ class SynoFileHostingBRMediathek extends TheiNaDProvider {
     public function GetDownloadInfo() {
         $this->DebugLog("Getting download url $this->Url");
 
-        $curl = curl_init();
+        $rawXML = $this->curlRequest($this->Url);
 
-        curl_setopt($curl, CURLOPT_URL, $this->Url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_USERAGENT, DOWNLOAD_STATION_USER_AGENT);
-        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-
-        $rawXML = curl_exec($curl);
-
-        if(!$rawXML)
+        if($rawXML === null)
         {
-            $this->DebugLog("Failed to retrieve Website. Error Info: " . curl_error($curl));
             return false;
         }
 
-        curl_close($curl);
-
         if(preg_match('#dataURL:\'(.*?)\'#si', $rawXML, $match) === 1)
         {
-            $curl = curl_init();
+            $RawXMLData = $this->curlRequest('http://www.br.de/' . $match[1]);
 
-            curl_setopt($curl, CURLOPT_URL, 'http://www.br.de/' . $match[1]);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_USERAGENT, DOWNLOAD_STATION_USER_AGENT);
-            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-
-            $RawXMLData = curl_exec($curl);
-
-            if(!$RawXMLData)
+            if($RawXMLData === null)
             {
-                $this->DebugLog("Failed to retrieve XML. Error Info: " . curl_error($curl));
                 return false;
             }
-
-            curl_close($curl);
 
             $match = array();
             $title = "";
