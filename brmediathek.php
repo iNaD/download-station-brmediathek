@@ -2,53 +2,19 @@
 
 /**
  * @author Daniel Gehn <me@theinad.com>
- * @version 0.1
+ * @version 0.2a
  * @copyright 2015 Daniel Gehn
  * @license http://opensource.org/licenses/MIT Licensed under MIT License
  */
 
-class SynoFileHostingBRMediathek {
-    private $Url;
-    private $Username;
-    private $Password;
-    private $HostInfo;
+require_once "provider.php";
 
-    private $LogPath = '/tmp/br-mediathek.log';
-    private $LogEnabled = false;
+class SynoFileHostingBRMediathek extends TheiNaDProvider {
 
-    public function __construct($Url, $Username = '', $Password = '', $HostInfo = '') {
-        $this->Url = $Url;
-        $this->Username = $Username;
-        $this->Password = $Password;
-        $this->HostInfo = $HostInfo;
-
-        $this->DebugLog("URL: $Url");
-    }
+    protected $LogPath = '/tmp/br-mediathek.log';
 
     //This function returns download url.
     public function GetDownloadInfo() {
-        $ret = FALSE;
-
-        $this->DebugLog("GetDownloadInfo called");
-
-        $ret = $this->Download();
-
-        return $ret;
-    }
-
-    public function onDownloaded()
-    {
-    }
-
-    public function Verify($ClearCookie = '')
-    {
-        $this->DebugLog("Verifying User");
-
-        return USER_IS_PREMIUM;
-    }
-
-    //This function gets the download url
-    private function Download() {
         $this->DebugLog("Getting download url $this->Url");
 
         $curl = curl_init();
@@ -87,6 +53,14 @@ class SynoFileHostingBRMediathek {
 
             curl_close($curl);
 
+            $match = array();
+            $title = "";
+
+            if(preg_match('#<sharetitle>(.*?)<\/sharetitle>#is', $RawXMLData, $match) == 1)
+            {
+                $title = $match[1];
+            }
+
             preg_match_all('#<asset type=["|\'](?:\w*)["|\']>(.*?)<\/asset>#si', $RawXMLData, $matches);
 
             $bestSource = array(
@@ -122,29 +96,38 @@ class SynoFileHostingBRMediathek {
 
             if($bestSource['url'] !== '')
             {
+                $url = trim($bestSource['url']);
+
                 $DownloadInfo = array();
-                $DownloadInfo[DOWNLOAD_URL] = trim($bestSource['url']);
+                $DownloadInfo[DOWNLOAD_URL] = $url;
+
+                $filename = "";
+                $pathinfo = pathinfo($url);
+
+                if(empty($title))
+                {
+                    $filename = $pathinfo['basename'];
+                }
+                else
+                {
+                    $filename .= $title . '.' . $pathinfo['extension'];
+                }
+
+                $DownloadInfo[DOWNLOAD_FILENAME] = $this->safeFilename($filename);
 
                 return $DownloadInfo;
             }
 
             $this->DebugLog("Failed to determine best quality: " . json_encode($matches[1]));
 
-            return FALSE;
+            return false;
 
         }
 
         $this->DebugLog("Couldn't identify player meta");
 
-        return FALSE;
+        return false;
     }
 
-    private function DebugLog($message)
-    {
-        if($this->LogEnabled === true)
-        {
-            file_put_contents($this->LogPath, $message . "\n", FILE_APPEND);
-        }
-    }
 }
 ?>
